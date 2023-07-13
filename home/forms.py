@@ -20,6 +20,9 @@ class ReplyCommentForm(forms.ModelForm):
         fields = ('body',)
 
 
+class PostSearchForm(forms.Form):
+    search = forms.CharField()
+
 
 
 

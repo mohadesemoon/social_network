@@ -1,18 +1,23 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from .models import Post, Comment, LikePost
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from .forms import PostUpdateCreateForm, CommentCreatForm, ReplyCommentForm
+from .forms import PostUpdateCreateForm, CommentCreatForm, ReplyCommentForm, PostSearchForm
 from django.utils.text import slugify
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 
 
 class HomeView(View):
+    form_class = PostSearchForm
+
     def get(self, request):
         posts = Post.objects.all()
-        return render(request, 'home/index.html', {'posts': posts})
+        if request.GET.get('search'):
+            posts = posts.filter(body__contains=request.GET['search'])
+
+        return render(request, 'home/index.html', {'posts': posts, 'form': self.form_class})
 
 
 class PostDetailView(View):
@@ -20,7 +25,7 @@ class PostDetailView(View):
     form_class_replay = ReplyCommentForm
 
     def setup(self, request, *args, **kwargs):
-        self.post_instance = Post.objects.get(pk=kwargs['post_id'], slug=kwargs['post_slug'])
+        self.post_instance = get_object_or_404(Post, pk=kwargs['post_id'], slug=kwargs['post_slug'])
         return super().setup(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
@@ -43,7 +48,7 @@ class PostDetailView(View):
 class PostDeleteView(LoginRequiredMixin, View):
 
     def get(self, request, post_id):
-        post = Post.objects.get(pk=post_id)
+        post = get_object_or_404(Post, pk=post_id)
         if request.user.id == post.user.id:
             post.delete()
             messages.success(request, 'post deleted successfully', 'success')
@@ -56,7 +61,7 @@ class PostUpdateView(LoginRequiredMixin, View):
     form_class = PostUpdateCreateForm
 
     def setup(self, request, *args, **kwargs):
-        self.post_instance = Post.objects.get(pk=kwargs['post_id'])
+        self.post_instance = get_object_or_404(Post, pk=kwargs['post_id'])
         return super().setup(request, *args, **kwargs)
 
     def dispatch(self, request, *args, **kwargs):
@@ -104,8 +109,8 @@ class ReplyCommentView(LoginRequiredMixin, View):
     form_class = ReplyCommentForm
 
     def post(self, request, post_id, comment_id):
-        post = Post.objects.get(pk=post_id)
-        comment = Comment.objects.get(pk=comment_id)
+        post = get_object_or_404(Post, pk=post_id)
+        comment = get_object_or_404(Comment, pk=comment_id)
         form = self.form_class(request.POST)
         if form.is_valid():
             reply = form.save(commit=False)
@@ -119,7 +124,7 @@ class ReplyCommentView(LoginRequiredMixin, View):
 
 class PostLikeView(LoginRequiredMixin, View):
     def get(self, request, post_id):
-        post = Post.objects.get(Post, pk=post_id)
+        post = get_object_or_404(Post, id=post_id)
         like = LikePost.objects.filter(post=post, user=request.user)
         if like.exists():
             messages.error(request, 'you can like just one time', 'danger')

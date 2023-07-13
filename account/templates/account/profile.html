@@ -13,6 +13,6 @@
 
 
     {% for post in posts %}
-        <a href="{{ post.get_absolute_url }}" class="card-body">{{ post.body }}</a>
+        <a href="{{ post.get_absolute_url }}" class="card-body">{{ post.body }}</a><br>
     {% endfor %}
 {% endblock %}
